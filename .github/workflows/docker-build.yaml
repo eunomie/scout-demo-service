@@ -8,12 +8,14 @@ on:
     branches: ["main"]
 
 env:
-  IMAGE_NAME: ""
+  IMAGE_NAME: "yvesbrissaud/scout-demo-service"
   SHA: ${{ github.event.pull_request.head.sha || github.event.after }}
   DOCKERFILE_PATH: Dockerfile
 
 jobs:
   build:
+    permissions:
+      pull-requests: write
     runs-on: ubuntu-latest
 
     steps:
@@ -28,8 +30,8 @@ jobs:
       - name: Log into registry
         uses: docker/login-action@v2
         with:
-          username: ""
-          password: ${{ secrets.DOCKER_PAT }}
+          username: ${{ secrets.DOCKER_HUB_USER }}
+          password: ${{ secrets.DOCKER_HUB_PAT }}
 
       - name: Extract Docker metadata
         id: meta
@@ -79,12 +81,12 @@ jobs:
           platform: "linux/arm64"
           summary: true
       
-      - name: Upload SARIF result
-        id: upload-sarif
-        if: ${{ github.event_name != 'pull_request_target' }}
-        uses: github/codeql-action/upload-sarif@v2
-        with:
-          sarif_file: sarif.output.json
+      #- name: Upload SARIF result
+      #  id: upload-sarif
+      #  if: ${{ github.event_name != 'pull_request_target' }}
+      #  uses: github/codeql-action/upload-sarif@v2
+      #  with:
+      #    sarif_file: sarif.output.json
 
       - name: Compare to deployed image
         id: docker-scout-compare
@@ -93,9 +95,9 @@ jobs:
         with:
           command: compare
           image: ${{ steps.meta.outputs.tags }}
+          organization: ybtestremediation
           only-severities: critical,high
-          to-env: prod
+          to-latest: true
           platform: "linux/arm64"
-          exit-code: true       
+          exit-on: policy
           summary: true
-
